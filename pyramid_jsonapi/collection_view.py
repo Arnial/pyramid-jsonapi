@@ -4,7 +4,7 @@ import functools
 import itertools
 import logging
 import re
-from collections.abc import Sequence
+from collections.abc import Sequence, defaultdict
 
 from pyramid.httpexceptions import (
     HTTPNotFound,
@@ -64,6 +64,7 @@ class CollectionViewBase:
     relname = None
     view_classes = None
     settings = None
+    rel_counts = dict()
 
     def __init__(self, request):
         self.request = request
@@ -1722,6 +1723,24 @@ class CollectionViewBase:
 
         return query
 
+    def related_count(self, obj_id, relationship):
+        if relationship not in self.rel_counts:
+            query = self.standard_relationship_query_count(relationship)
+            data = query.all()
+            self.rel_counts[relationship] = defaultdict(lambda: 0)
+            logging.debug('count len is ' + str(len(data)))
+            for [id, count] in data:
+                self.rel_counts[relationship][id] = count
+
+        return self.rel_counts[relationship][obj_id]
+
+    def standard_relationship_query_count(self, relationship):
+        rel = relationship
+        rel_class = rel.mapper.class_
+        rel_view = self.view_instance(rel_class)
+        local_col, rem_col = rel.local_remote_pairs[0]
+        return self.dbsession.query(rem_col, sqlalchemy.func.count(rem_col)).group_by(rem_col)
+
     def related_query(self, obj_id, relationship, full_object=True):
         """Construct query for related objects.
 
@@ -1891,7 +1910,7 @@ class CollectionViewBase:
                         included, include_path + [key]
                     )
             if many:
-                rel_dict['meta']['results']['available'] = query.count()
+                rel_dict['meta']['results']['available'] = self.related_count(item_id, rel)
                 rel_dict['meta']['results']['returned'] = len(data)
                 rel_dict['data'] = data
             else:
