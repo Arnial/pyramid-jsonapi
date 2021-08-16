@@ -4,7 +4,8 @@ import functools
 import itertools
 import logging
 import re
-from collections.abc import Sequence, defaultdict
+from collections.abc import Sequence
+from collections import defaultdict
 
 from pyramid.httpexceptions import (
     HTTPNotFound,
