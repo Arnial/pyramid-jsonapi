@@ -1736,7 +1736,7 @@ class CollectionViewBase:
         return self.rel_counts[relationship][obj_id]
 
     def standard_relationship_query_count(self, relationship):
-        rel = relationship
+        rel = relationship.obj
         rel_class = rel.mapper.class_
         rel_view = self.view_instance(rel_class)
         local_col, rem_col = rel.local_remote_pairs[0]
